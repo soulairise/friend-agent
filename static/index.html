@@ -164,6 +164,8 @@ textarea.input{min-height:80px;resize:vertical}
 .mlist{margin:0;padding-left:16px}
 .mlist li{margin:2px 0}
 .mute{color:var(--dev-mute)}
+.build{padding:6px 16px 14px;font-size:11px;color:var(--ink-3)}
+.build code{font-family:ui-monospace,Menlo,monospace}
 .timing{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .timing div{background:#171b25;border-radius:8px;padding:6px 8px}
 .timing span{display:block;font-size:11px;color:var(--dev-mute)}
@@ -212,6 +214,7 @@ textarea.input{min-height:80px;resize:vertical}
       <button data-view="memory">🧠 기억과 약속 <span class="count" id="memCount"></span></button>
     </nav>
     <div class="account" id="account"></div>
+    <div class="build" id="build" hidden></div>
   </aside>
   <div class="scrim" id="scrim"></div>
 
@@ -657,6 +660,17 @@ $("#deleteAll").onclick = async () => {
   await api("/api/data", {method: "DELETE"}); location.reload();
 };
 
+// 지금 떠 있는 버전(커밋 앞 7자리, 리비전 번호)을 메뉴 맨 아래에 보여 준다. 못 읽으면 숨긴 채 둔다.
+async function renderBuild() {
+  try {
+    const v = await (await fetch("/version")).json();
+    const commit = v.commit && v.commit !== "local" ? v.commit.slice(0, 7) : "로컬";
+    const rev = (v.revision || "").replace(/^.*-(\d+)-[a-z0-9]+$/, "$1");
+    $("#build").innerHTML = `배포 버전 <code>${commit}</code>${rev && rev !== v.revision ? ` · 리비전 ${rev}` : ""}`;
+    $("#build").hidden = false;
+  } catch (err) { /* 버전 표시는 없어도 대화에는 지장이 없다 */ }
+}
+
 // ── 시작 ─────────────────────────────────────────────────────
 (async () => {
   cfg = await (await fetch("/api/config")).json();
@@ -666,6 +680,7 @@ $("#deleteAll").onclick = async () => {
   try { await initAuth(); } catch (err) { console.error(err); alert("로그인을 시작하지 못했습니다. 잠시 뒤 새로고침해 주세요."); return; }
   me = await api("/api/me");
   renderAccount();
+  renderBuild();
   character = (await api("/api/character")).character;
   paintCharacter(); refreshCount();
   if (!me.has_character) { $("#setupTitle").textContent = "캐릭터 만들기"; show("setup"); return; }
